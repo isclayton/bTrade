@@ -11,15 +11,15 @@ base_url = 'https://api.kraken.com/'
 API_KEY = ''
 API_SIG = ''
 VOLUME = 10
-LIMIT_BUY_THRESHOLD = 1.01
-LIMIT_SELL_THRESHOLD = 0.99
+LIMIT_SELL_THRESHOLD = 1.01
+LIMIT_BUY_THRESHOLD = 0.99
 class Kraken:
     USD = 1000
     ADA = 1000
     orders = {'sell':[], 'buy': []}
     history = {'Time': [], 'Price': []}
     positions = {}
-    STDEVS = 1
+    STDEVS = 2
     #Simulate limit orders
     def process_orders(self, current_price):
         try:
@@ -29,7 +29,8 @@ class Kraken:
             return
        
         if len(sell_orders) > 0:
-            if order[0] <= self.ADA and order[1] <= current_price:
+            for order in sell_orders:
+                if order[0] <= self.ADA and order[1] <= current_price:
                     self.sell_market(current_price,order[0])
                     self.orders['sell'].remove(order)
         if len(buy_orders) > 0:
