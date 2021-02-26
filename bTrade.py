@@ -6,13 +6,13 @@ import os
 import numpy as np
 from termcolor import colored
 from terminalplot import plot
-from bashplotlib.scatterplot import plot_scatter
-from pprint import pprint
 base_url = 'https://api.kraken.com/'
 
 API_KEY = ''
 API_SIG = ''
-
+VOLUME = 10
+LIMIT_BUY_THRESHOLD = 1.01
+LIMIT_SELL_THRESHOLD = 0.99
 class Kraken:
     USD = 1000
     ADA = 1000
@@ -29,9 +29,7 @@ class Kraken:
             return
        
         if len(sell_orders) > 0:
-    
-            for order in sell_orders:
-                if order[0] <= self.ADA and order[1] <= current_price:
+    LIMIT_BUY_THRESHOLD= self.ADA and order[1] <= current_price:
                     self.sell_market(current_price,order[0])
                     self.orders['sell'].remove(order)
         if len(buy_orders) > 0:
@@ -81,9 +79,6 @@ class Kraken:
         res = json.loads(requests.get(url).text)['result'][f'{asset}']['c']
         #print(res)
         return float(res[0])
-    def plotPrice(self):
-
-        plot(self.history['Time'], self.history['Price'])
 
     def getAssetHistory(self, asset):
         url = f'https://api.kraken.com/0/public/OHLC?pair={asset}&since={time.time()-(12000)}'
@@ -116,25 +111,27 @@ class Kraken:
         print(f"\r{colored(f'============================================================================================','yellow')}")
 
         if len(self.orders['sell']) > 0 :
-            text = f"Limit Sells: {[i[1] for i in self.orders['sell']]}"
+            text = f"Limit Sells: {sorted([i[1] for i in self.orders['sell']])}"
             print(colored(text, 'red'))
         else:
             text = f"Limit Sells: No Sell Orders"
             print(colored(text, 'red'))
        
         if len(self.orders['buy']) > 0 :
-            text = f"Limit Buys: {[i[1] for i in self.orders['buy']]}"
+            text = f"Limit Buys: {sorted([i[1] for i in self.orders['buy']])}"
             print(colored(text, 'green'))
         else:
             text = f"Limit Buys: No Buy Orders"
             print(colored(text, 'green'))
+        
+        ''' This doesnt work
         if len(self.positions) > 0 :
-            text = f"Positions: {[i[1] for i in self.positions]}"
+            text = f"Positions: {sorted([i[1] for i in self.positions])}"
             print(colored(text, 'yellow'))
         else:
             text = f"Positions: None"
             print(colored(text, 'yellow'))
-
+        '''
     def bands(self):
         asset_history = self.getAssetHistory('ADAUSD')
         stdev = np.std(asset_history)
@@ -143,8 +140,8 @@ class Kraken:
 
     def run(self, current_price):
         mean, stdev = self.bands()
-        self.UPPER_BAND = mean+2*stdev
-        self.LOWER_BAND = mean-2*stdev
+        self.UPPER_BAND = mean+self.STDEVS*stdev
+        self.LOWER_BAND = mean-self.STDEVS*stdev
         #print(mean, stdev)
         if current_price > ((mean + self.STDEVS*stdev)):
             return -1
@@ -166,13 +163,13 @@ while True:
         if action == 0:
             pass
         elif action == 1:
-            success = krack.buy_market(current_price,100)
+            success = krack.buy_market(current_price,VOLUME)
             if success: 
-                krack.sell_limit(100, current_price*1.01)
+                krack.sell_limit(VOLUME, current_price*LIMIT_SELL_THRESHOLD)
         elif action == -1:
-            success = krack.sell_market(current_price,100)
+            success = krack.sell_market(current_price,VOLUME)
             if success:
-                krack.buy_limit(100, current_price*0.99)
+                krack.buy_limit(VOLUME, current_price*LIMIT_BUY_THRESHOLD)
     except Exception as e:
         print(e)
         pass
