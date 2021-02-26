@@ -29,7 +29,7 @@ class Kraken:
             return
        
         if len(sell_orders) > 0:
-    LIMIT_BUY_THRESHOLD= self.ADA and order[1] <= current_price:
+            if order[0] <= self.ADA and order[1] <= current_price:
                     self.sell_market(current_price,order[0])
                     self.orders['sell'].remove(order)
         if len(buy_orders) > 0:
