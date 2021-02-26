@@ -20,7 +20,15 @@ class Kraken:
     history = {'Time': [], 'Price': []}
     positions = {}
     STDEVS = 2
+    INITIAL_ADA = ADA
+    INITIAL_USD = USD
     #Simulate limit orders
+    
+    def getStartingValue(self):
+        current_price = self.getAssetPrice('ADAUSD')
+        self.PORTFOLIO_VALUE = current_price*self.ADA + self.USD
+       
+    
     def process_orders(self, current_price):
         try:
             sell_orders = self.orders['sell']
@@ -107,8 +115,13 @@ class Kraken:
         os.system('clear')
         lower = colored(self.LOWER_BAND, 'green')
         upper = colored(self.UPPER_BAND,'red')
+        line1 = f'Lower: {lower}    Current price: {current_price}   Upper: {upper}'
+        line2 = f'Starting Value {self.PORTFOLIO_VALUE}   Current Value: {self.ADA * current_price + self.USD}      Market-Only Value: {self.INITIAL_ADA*current_price + self.INITIAL_USD}'    
+        line3 = f'ADA: {self.ADA}     USD: {self.USD}'
         print(f"\r{colored(f'============================================================================================','yellow')}")
-        print(f"{f'Lower: {lower}    Current price: {current_price}   Upper: {upper}     ADA: {self.ADA}     USD: {self.USD}'}")
+        print(line1+"\n")
+        print(line2+"\n")
+        print(line3)
         print(f"\r{colored(f'============================================================================================','yellow')}")
 
         if len(self.orders['sell']) > 0 :
@@ -153,6 +166,7 @@ class Kraken:
 
 
 krack = Kraken()
+krack.getStartingValue()
 
 while True:
     
