@@ -289,11 +289,11 @@ def main():
     krack.PORTFOLIO_VALUE = current_price * krack.ADA + krack.USD 
     krack.INITIAL_ADA = krack.ADA
     krack.INITIAL_USD = krack.USD
-    #krack.getStartingValue()
-    #krack.getAccountBalance()
+    krack.getStartingValue()
+    krack.getAccountBalance()
     while True:
         #krack.getTrades()
-        krack.getAccountBalance()
+        #krack.getAccountBalance()
         current_price = krack.getAssetPrice('ADAUSD')
         krack.process_orders(current_price)
         
@@ -302,21 +302,25 @@ def main():
             if action == 0:
                 pass
             elif action == 1:
-                #success = krack.buy_market(current_price,VOLUME)
-                success = krack.buy_market_real(VOLUME)
+                success = krack.buy_market(current_price,VOLUME)
+                #success = krack.buy_market_real(VOLUME)
                 if success: 
-                    krack.sell_limit_real(VOLUME, current_price*LIMIT_SELL_THRESHOLD)
+                    #krack.sell_limit_real(VOLUME, current_price*LIMIT_SELL_THRESHOLD)
+                    krack.sell_limit(VOLUME, current_price*LIMIT_SELL_THRESHOLD)
+
             elif action == -1:
-                #success = krack.sell_market(current_price,VOLUME)
-                success = krack.sell_market_real(VOLUME)
+                success = krack.sell_market(current_price,VOLUME)
+                #success = krack.sell_market_real(VOLUME)
                 if success:
-                    krack.buy_limit_real(VOLUME, current_price*LIMIT_BUY_THRESHOLD)
+                    krack.buy_limit(VOLUME, current_price*LIMIT_BUY_THRESHOLD)
+
+                    #krack.buy_limit_real(VOLUME, current_price*LIMIT_BUY_THRESHOLD)
         except Exception as e:
             print(e)
             pass
         krack.showPositions(current_price)
         
-        time.sleep(20)
+        time.sleep(10)
 
 if __name__ == "__main__":
 
