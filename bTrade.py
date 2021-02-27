@@ -9,7 +9,7 @@ from terminalplot import plot
 import hmac
 import base64
 import hashlib
-
+from pprint import pprint
 base_url = 'https://api.kraken.com/'
 
 
@@ -43,13 +43,8 @@ class Kraken:
         url = 'https://api.kraken.com/0/private/Balance'
         headers = {'API-Key':self.api_key, "API-Sign": base64.b64encode(api_hmacsha512.digest())}
         res = requests.post(url, headers=headers, data=api_postdata).json()
-        self.INITIAL_USD = float(res['result']['ZUSD'])
-        self.INITIAL_ADA = float(res['result']['ADA'])
         self.USD = float(res['result']['ZUSD'])
         self.ADA = float(res['result']['ADA'])
-        print(self.INITIAL_ADA, self.INITIAL_USD)
-        current_price = self.getAssetPrice('ADAUSD')
-        self.PORTFOLIO_VALUE = current_price*self.ADA + self.USD
     
     def getStartingValue(self):
         current_price = self.getAssetPrice('ADAUSD')
@@ -77,22 +72,7 @@ class Kraken:
         #orders = {'sell':[], 'buy': []}
 
     def buy_market_real(self, amount):
-        print("buying")
-        '''
-        pair = asset pair
-        type = type of order (buy/sell)
-        ordertype = order type:
-        market
-        limit (price = limit price)
-        stop-loss (price = stop loss price)
-        take-profit (price = take profit price)
-        stop-loss-limit (price = stop loss trigger price, price2 = triggered limit price)
-        take-profit-limit (price = take profit trigger price, price2 = triggered limit price)
-        settle-position
-        price = price (optional.  dependent upon ordertype)
-        price2 = secondary price (optional.  dependent upon ordertype)
-        volume = order volume in lots
-        '''
+
         pair = 'ADAUSD'
         typee = 'buy'
         ordertype = 'market'
@@ -117,22 +97,7 @@ class Kraken:
             return True
 
     def sell_market_real(self, amount):
-        print("selling")
-        '''
-        pair = asset pair
-        type = type of order (buy/sell)
-        ordertype = order type:
-        market
-        limit (price = limit price)
-        stop-loss (price = stop loss price)
-        take-profit (price = take profit price)
-        stop-loss-limit (price = stop loss trigger price, price2 = triggered limit price)
-        take-profit-limit (price = take profit trigger price, price2 = triggered limit price)
-        settle-position
-        price = price (optional.  dependent upon ordertype)
-        price2 = secondary price (optional.  dependent upon ordertype)
-        volume = order volume in lots
-        '''
+     
         pair = 'ADAUSD'
         typee = 'sell'
         ordertype = 'market'
@@ -177,6 +142,8 @@ class Kraken:
 
      #Buy {amount} at some price {price}
     def buy_limit_real(self, amount, price):
+        price = float("{:.4f}".format(price))
+        self.orders['buy'].append([amount, price])
         api_data = f'pair=ADAUSD&type=buy&ordertype=limit&price={price}&volume={VOLUME}'
         api_path = "/0/private/"
         api_nonce = str(int(time.time()*1000))
@@ -191,6 +158,7 @@ class Kraken:
         res = requests.post(url, headers=headers, data=api_postdata).json()
     #Sell {amount} at some price {price}
     def sell_limit_real(self, amount, price):
+        price = float("{:.4f}".format(price))
         api_data = f'pair=ADAUSD&type=sell&ordertype=limit&price={price}&volume={VOLUME}'
         api_path = "/0/private/"
         api_nonce = str(int(time.time()*1000))
@@ -217,6 +185,20 @@ class Kraken:
         pass
         #asda
 
+    def getTrades(self):
+        api_data = f'trades=true'
+        api_path = "/0/private/"
+        api_nonce = str(int(time.time()*1000))
+        api_method= 'OpenOrders'
+        api_postdata = api_data + "&nonce=" + api_nonce
+        api_postdata = api_postdata.encode('utf-8')
+        api_sha256 = hashlib.sha256(api_nonce.encode('utf-8') + api_postdata).digest()
+        api_hmacsha512 = hmac.new(self.api_secret, api_path.encode('utf-8') + api_method.encode('utf-8') + api_sha256, hashlib.sha512)
+	    #api_hmacsha512 = hmac.new(api_secret, api_path.encode('utf-8') + api_method.encode('utf-8') + api_sha256, hashlib.sha512)
+        url = 'https://api.kraken.com/0/private/OpenOrders'
+        headers = {'API-Key':self.api_key, "API-Sign": base64.b64encode(api_hmacsha512.digest())}
+        res = requests.post(url, headers=headers, data=api_postdata).json()
+        pprint(res)
     #Get current asset price
     def getAssetPrice(self, asset):
         url = base_url+f'0/public/Ticker?pair={asset}'
@@ -225,7 +207,7 @@ class Kraken:
         return float(res[0])
 
     def getAssetHistory(self, asset):
-        url = f'https://api.kraken.com/0/public/OHLC?pair={asset}&since={time.time()-(12000)}'
+        url = f'https://api.kraken.com/0/public/OHLC?interval=5&pair={asset}&since={time.time()-(12000)}'
         res = requests.get(url).json()['result'][f'{asset}']
        
         last_20 = []
@@ -302,9 +284,15 @@ class Kraken:
 def main():
 
     krack = Kraken()
+    current_price = krack.getAssetPrice('ADAUSD')
+    krack.getAccountBalance()
+    krack.PORTFOLIO_VALUE = current_price * krack.ADA + krack.USD 
+    krack.INITIAL_ADA = krack.ADA
+    krack.INITIAL_USD = krack.USD
     #krack.getStartingValue()
     #krack.getAccountBalance()
     while True:
+        #krack.getTrades()
         krack.getAccountBalance()
         current_price = krack.getAssetPrice('ADAUSD')
         krack.process_orders(current_price)
@@ -318,7 +306,6 @@ def main():
                 success = krack.buy_market_real(VOLUME)
                 if success: 
                     krack.sell_limit_real(VOLUME, current_price*LIMIT_SELL_THRESHOLD)
-                
             elif action == -1:
                 #success = krack.sell_market(current_price,VOLUME)
                 success = krack.sell_market_real(VOLUME)
@@ -329,7 +316,7 @@ def main():
             pass
         krack.showPositions(current_price)
         
-        time.sleep(5)
+        time.sleep(20)
 
 if __name__ == "__main__":
 
